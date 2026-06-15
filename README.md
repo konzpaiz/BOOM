@@ -12,7 +12,7 @@ Menghemat waktu perjalanan antar gedung.
 Menyediakan transportasi yang ramah lingkungan.
 Mengurangi kemacetan kendaraan di lingkungan kampus.
 
-3. Konsep Aplikasi
+3. Konsep Aplikasi 
 Aplikasi ini bekerja seperti layanan bike sharing. Mahasiswa dapat:
 Mendaftar atau login ke aplikasi menggunakan akun mahasiswa.
 Melihat lokasi sepeda listrik yang tersedia di sekitar kampus melalui peta.
