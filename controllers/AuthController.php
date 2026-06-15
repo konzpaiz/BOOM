@@ -44,6 +44,7 @@ class AuthController {
             $user->nim = $_POST['nim'];
             $user->name = $_POST['name'];
             $user->email = $_POST['email'];
+            $user->phone = isset($_POST['phone']) ? $_POST['phone'] : null;
             $user->password = $_POST['password'];
             $user->role = 'user';
 

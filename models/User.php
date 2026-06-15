@@ -9,6 +9,7 @@ class User {
     public $nim;
     public $name;
     public $email;
+    public $phone;
     public $password;
     public $role;
 
@@ -18,12 +19,13 @@ class User {
     }
 
     public function create() {
-        $query = "INSERT INTO " . $this->table_name . " SET nim=:nim, name=:name, email=:email, password=:password, role=:role";
+        $query = "INSERT INTO " . $this->table_name . " SET nim=:nim, name=:name, email=:email, phone=:phone, password=:password, role=:role";
         $stmt = $this->conn->prepare($query);
 
         $this->nim=htmlspecialchars(strip_tags($this->nim));
         $this->name=htmlspecialchars(strip_tags($this->name));
         $this->email=htmlspecialchars(strip_tags($this->email));
+        $this->phone=htmlspecialchars(strip_tags($this->phone));
         $this->password=password_hash($this->password, PASSWORD_BCRYPT);
         
         $role = $this->role ? $this->role : 'user';
@@ -31,6 +33,7 @@ class User {
         $stmt->bindParam(":nim", $this->nim);
         $stmt->bindParam(":name", $this->name);
         $stmt->bindParam(":email", $this->email);
+        $stmt->bindParam(":phone", $this->phone);
         $stmt->bindParam(":password", $this->password);
         $stmt->bindParam(":role", $role);
 
@@ -41,7 +44,7 @@ class User {
     }
 
     public function readByNim($nim) {
-        $query = "SELECT id, nim, name, email, password, role FROM " . $this->table_name . " WHERE nim = ? LIMIT 0,1";
+        $query = "SELECT id, nim, name, email, phone, password, role FROM " . $this->table_name . " WHERE nim = ? LIMIT 0,1";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(1, $nim);
         $stmt->execute();
@@ -49,14 +52,14 @@ class User {
     }
     
     public function readAll() {
-        $query = "SELECT id, nim, name, email, role FROM " . $this->table_name . " ORDER BY id DESC";
+        $query = "SELECT id, nim, name, email, phone, role FROM " . $this->table_name . " ORDER BY id DESC";
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
         return $stmt;
     }
 
     public function readById($id) {
-        $query = "SELECT id, nim, name, email, role FROM " . $this->table_name . " WHERE id = ? LIMIT 0,1";
+        $query = "SELECT id, nim, name, email, phone, role FROM " . $this->table_name . " WHERE id = ? LIMIT 0,1";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(1, $id);
         $stmt->execute();
@@ -67,6 +70,7 @@ class User {
             $this->nim = $row['nim'];
             $this->name = $row['name'];
             $this->email = $row['email'];
+            $this->phone = $row['phone'];
             $this->role = $row['role'];
             return true;
         }
@@ -74,15 +78,17 @@ class User {
     }
 
     public function update() {
-        $query = "UPDATE " . $this->table_name . " SET name=:name, email=:email WHERE id=:id";
+        $query = "UPDATE " . $this->table_name . " SET name=:name, email=:email, phone=:phone WHERE id=:id";
         $stmt = $this->conn->prepare($query);
         
         $this->name=htmlspecialchars(strip_tags($this->name));
         $this->email=htmlspecialchars(strip_tags($this->email));
+        $this->phone=htmlspecialchars(strip_tags($this->phone));
         $this->id=htmlspecialchars(strip_tags($this->id));
 
         $stmt->bindParam(":name", $this->name);
         $stmt->bindParam(":email", $this->email);
+        $stmt->bindParam(":phone", $this->phone);
         $stmt->bindParam(":id", $this->id);
 
         if($stmt->execute()){

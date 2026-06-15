@@ -48,6 +48,24 @@ if ($page == 'home') {
         exit;
     }
     require 'views/user/history.php';
+} elseif ($page == 'user_bikes') {
+    if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'user') {
+        header('Location: index.php');
+        exit;
+    }
+    require 'views/user/bikes.php';
+} elseif ($page == 'user_active') {
+    if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'user') {
+        header('Location: index.php');
+        exit;
+    }
+    require 'views/user/active.php';
+} elseif ($page == 'profile') {
+    if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'user') {
+        header('Location: index.php');
+        exit;
+    }
+    require 'views/user/profile.php';
 } elseif ($page == 'admin_dashboard') {
     if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
         header('Location: index.php');
@@ -72,6 +90,12 @@ if ($page == 'home') {
         exit;
     }
     require 'views/admin/transactions.php';
+} elseif ($page == 'admin_reports') {
+    if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+        header('Location: index.php');
+        exit;
+    }
+    require 'views/admin/reports.php';
 } else {
     echo "404 Page Not Found";
 }

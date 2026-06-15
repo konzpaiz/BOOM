@@ -1,4 +1,4 @@
-<?php require 'views/layouts/header.php'; ?>
+<?php require 'views/layouts/sidebar_admin.php'; ?>
 <?php
 require_once 'models/User.php';
 require_once 'models/Bike.php';
@@ -12,24 +12,48 @@ $total_users = $userModel->readAll()->rowCount();
 $total_bikes = $bikeModel->readAll()->rowCount();
 $available_bikes = $bikeModel->readAvailable()->rowCount();
 $total_trx = $trxModel->readAll()->rowCount();
+
+// Calculate total revenue
+$db = new Database();
+$conn = $db->getConnection();
+$query = "SELECT SUM(total_biaya) as revenue FROM transaksi WHERE status_pembayaran = 'Lunas'";
+$stmt = $conn->prepare($query);
+$stmt->execute();
+$row = $stmt->fetch(PDO::FETCH_ASSOC);
+$revenue = $row['revenue'] ? $row['revenue'] : 0;
 ?>
 
 <div>
-    <h2>Dashboard Admin</h2>
-    <p>Ringkasan sistem penyewaan sepeda kampus.</p>
+    <h2 style="margin-bottom: 1.5rem;">Ringkasan Sistem</h2>
 
-    <div class="grid mt-4">
-        <div class="card">
-            <h3 class="card-title text-primary">Total Pengguna</h3>
-            <h1 style="margin:0; font-size: 2.5rem;"><?php echo $total_users; ?></h1>
+    <div class="grid">
+        <div class="card stat-card">
+            <div class="stat-icon stat-primary"><i class="fa-solid fa-users"></i></div>
+            <div class="stat-details">
+                <h3><?php echo $total_users; ?></h3>
+                <p>Total Pengguna</p>
+            </div>
         </div>
-        <div class="card">
-            <h3 class="card-title" style="color: var(--secondary-color);">Sepeda Tersedia</h3>
-            <h1 style="margin:0; font-size: 2.5rem;"><?php echo $available_bikes; ?> / <?php echo $total_bikes; ?></h1>
+        <div class="card stat-card">
+            <div class="stat-icon stat-secondary"><i class="fa-solid fa-bicycle"></i></div>
+            <div class="stat-details">
+                <h3><?php echo $available_bikes; ?> <span style="font-size: 1rem; color: #9CA3AF;">/ <?php echo $total_bikes; ?></span></h3>
+                <p>Sepeda Tersedia</p>
+            </div>
         </div>
-        <div class="card">
-            <h3 class="card-title" style="color: var(--danger);">Total Transaksi</h3>
-            <h1 style="margin:0; font-size: 2.5rem;"><?php echo $total_trx; ?></h1>
+        <div class="card stat-card">
+            <div class="stat-icon stat-danger"><i class="fa-solid fa-money-bill-transfer"></i></div>
+            <div class="stat-details">
+                <h3><?php echo $total_trx; ?></h3>
+                <p>Total Transaksi</p>
+            </div>
+        </div>
+        <div class="card stat-card">
+            <div class="stat-icon" style="background-color: #FEF3C7; color: #D97706;"><i class="fa-solid fa-wallet"></i></div>
+            <div class="stat-details">
+                <h3 style="font-size: 1.5rem;">Rp <?php echo number_format($revenue,0,',','.'); ?></h3>
+                <p>Total Pendapatan</p>
+            </div>
         </div>
     </div>
 </div>
