@@ -72,4 +72,3 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['bike_id'])) {
 </div>
 
 <?php require 'views/layouts/footer_user.php'; ?>
-//

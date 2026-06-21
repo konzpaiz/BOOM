@@ -62,4 +62,3 @@ $stmt = $trx->readByUserId($_SESSION['user_id']);
 <?php endif; ?>
 
 <?php require 'views/layouts/footer_user.php'; ?>
-//
