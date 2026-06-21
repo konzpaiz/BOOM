@@ -1,102 +1,99 @@
 <?php
-require_once 'models/User.php';
+require_once 'config/database.php';
 
-$user = new User();
-$message = '';
-$messageType = '';
+$db = new Database();
+$conn = $db->getConnection();
 
-// Handle delete action
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
-    $user->id = $_POST['user_id'];
-    if ($user->delete()) {
-        $message = 'Pengguna berhasil dihapus.';
-        $messageType = 'success';
-    } else {
-        $message = 'Gagal menghapus pengguna.';
-        $messageType = 'danger';
-    }
-}
-
-$stmt = $user->readAll();
+// Fetch all transactions with user information to represent tenant history
+$query = "SELECT t.*, u.name as user_name, u.nim, u.email, u.phone, s.merk, s.kode_sepeda 
+          FROM transaksi t 
+          LEFT JOIN users u ON t.user_id = u.id 
+          LEFT JOIN sepeda s ON t.sepeda_id = s.id 
+          ORDER BY t.id DESC";
+$stmt = $conn->prepare($query);
+$stmt->execute();
 
 require 'views/layouts/header_admin.php';
 ?>
 
-<?php if ($message): ?>
-    <div class="alert alert-<?= $messageType ?>">
-        <i class="fas fa-<?= $messageType === 'success' ? 'check-circle' : 'exclamation-circle' ?>"></i>
-        <?= htmlspecialchars($message) ?>
-    </div>
-<?php endif; ?>
+<div class="admin-topbar">
+    <h1>Riwayat Pengguna</h1>
+    <div class="topbar-info">Seluruh data riwayat aktivitas penyewa sepeda</div>
+</div>
 
-<div class="card">
-    <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
-        <h3 style="margin:0; font-size: 1.1rem; color: #1F2937;">
-            <i class="fas fa-users" style="margin-right:8px; color:#6B7280;"></i>Daftar Pengguna
-        </h3>
-        <div class="form-group" style="margin:0; position:relative; min-width:220px;">
-            <i class="fas fa-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#6B7280;"></i>
-            <input type="text" id="searchUser" class="form-control" placeholder="Cari pengguna..." style="padding-left:36px;" onkeyup="filterUsers()">
+<div class="admin-content">
+    <div class="admin-card">
+        <div class="admin-card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+            <h3><i class="fa fa-users" style="margin-right:8px; color:#1e3a5f;"></i>Daftar Aktivitas Penyewa</h3>
+            <!-- Search bar -->
+            <div style="position:relative; min-width:250px;">
+                <input type="text" id="searchUserRental" class="form-control" placeholder="Cari Nama / NIM / Sepeda..." onkeyup="filterUserRentals()" style="padding-right:30px;">
+            </div>
         </div>
-    </div>
-
-    <div class="table-container">
-        <table id="usersTable">
-            <thead>
-                <tr>
-                    <th>NIM</th>
-                    <th>Nama</th>
-                    <th>Email</th>
-                    <th>Telepon</th>
-                    <th>Role</th>
-                    <th>Aksi</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php while ($row = $stmt->fetch(PDO::FETCH_ASSOC)): ?>
-                <tr>
-                    <td><strong><?= htmlspecialchars($row['nim']) ?></strong></td>
-                    <td><?= htmlspecialchars($row['name']) ?></td>
-                    <td>
-                        <a href="mailto:<?= htmlspecialchars($row['email']) ?>" style="color:#1E3A8A; text-decoration:none;">
-                            <?= htmlspecialchars($row['email']) ?>
-                        </a>
-                    </td>
-                    <td><?= htmlspecialchars($row['phone'] ?? '-') ?></td>
-                    <td>
-                        <?php if ($row['role'] === 'admin'): ?>
-                            <span class="badge badge-warning"><i class="fas fa-shield-alt" style="margin-right:4px;"></i>Admin</span>
-                        <?php else: ?>
-                            <span class="badge badge-success"><i class="fas fa-user" style="margin-right:4px;"></i>User</span>
-                        <?php endif; ?>
-                    </td>
-                    <td>
-                        <?php if ($row['role'] !== 'admin'): ?>
-                        <form method="POST" style="display:inline;" onsubmit="return confirm('Yakin ingin menghapus pengguna ini?');">
-                            <input type="hidden" name="action" value="delete">
-                            <input type="hidden" name="user_id" value="<?= $row['id'] ?>">
-                            <button type="submit" class="btn btn-danger" style="padding:6px 12px; font-size:0.8rem;">
-                                <i class="fas fa-trash-alt"></i>
-                            </button>
-                        </form>
-                        <?php else: ?>
-                            <span class="text-muted" style="font-size:0.8rem;">—</span>
-                        <?php endif; ?>
-                    </td>
-                </tr>
-                <?php endwhile; ?>
-            </tbody>
-        </table>
+        
+        <div style="overflow-x:auto;">
+            <table id="userRentalsTable">
+                <thead>
+                    <tr>
+                        <th>Nama Pengguna</th>
+                        <th>NIM</th>
+                        <th>Tanggal Penyewaan</th>
+                        <th>Sepeda</th>
+                        <th>Durasi Penyewaan</th>
+                        <th>Status Penyewaan</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php while ($row = $stmt->fetch(PDO::FETCH_ASSOC)): ?>
+                    <?php
+                        // Calculate duration
+                        $durasi = '-';
+                        if ($row['waktu_mulai'] && $row['waktu_selesai']) {
+                            $diff = strtotime($row['waktu_selesai']) - strtotime($row['waktu_mulai']);
+                            $h = floor($diff / 3600);
+                            $m = floor(($diff % 3600) / 60);
+                            $durasi = ($h > 0 ? $h . ' jam ' : '') . $m . ' menit';
+                        } elseif ($row['status_sewa'] === 'Berjalan') {
+                            $diff = time() - strtotime($row['waktu_mulai']);
+                            $h = floor($diff / 3600);
+                            $m = floor(($diff % 3600) / 60);
+                            $durasi = ($h > 0 ? $h . ' jam ' : '') . $m . ' menit (berjalan)';
+                        }
+                    ?>
+                    <tr>
+                        <td>
+                            <div style="font-weight:600; color:#1e3a5f;"><?= htmlspecialchars($row['user_name'] ?? '-') ?></div>
+                            <div class="text-muted text-small"><?= htmlspecialchars($row['email'] ?? '') ?></div>
+                        </td>
+                        <td><strong><?= htmlspecialchars($row['nim'] ?? '-') ?></strong></td>
+                        <td><?= date('d M Y, H:i', strtotime($row['waktu_mulai'])) ?></td>
+                        <td><?= htmlspecialchars($row['merk'] ?? '-') ?></td>
+                        <td><?= $durasi ?></td>
+                        <td>
+                            <?php if ($row['status_sewa'] === 'Berjalan'): ?>
+                                <span class="badge badge-yellow">Masih Berjalan</span>
+                            <?php else: ?>
+                                <span class="badge badge-green">Selesai</span>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                    <?php endwhile; ?>
+                    <?php if ($stmt->rowCount() === 0): ?>
+                        <tr><td colspan="6" class="text-center text-muted" style="padding:20px;">Belum ada riwayat penyewaan.</td></tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
 <script>
-function filterUsers() {
-    const input = document.getElementById('searchUser').value.toLowerCase();
-    const rows = document.querySelectorAll('#usersTable tbody tr');
-    rows.forEach(function(row) {
+function filterUserRentals() {
+    const query = document.getElementById('searchUserRental').value.toLowerCase();
+    const rows = document.querySelectorAll('#userRentalsTable tbody tr');
+    rows.forEach(row => {
         const text = row.textContent.toLowerCase();
-        row.style.display = text.includes(input) ? '' : 'none';
+        row.style.display = text.includes(query) ? '' : 'none';
     });
 }
 </script>

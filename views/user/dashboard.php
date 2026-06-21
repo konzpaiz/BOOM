@@ -1,52 +1,91 @@
 <?php require 'views/layouts/header_user.php'; ?>
-<?php 
+<?php
 require_once 'models/Transaction.php';
+require_once 'models/Bike.php';
 
 $trx = new Transaction();
-$active = $trx->readActiveByUserId($_SESSION['user_id'])->fetch(PDO::FETCH_ASSOC);
+$bikeModel = new Bike();
 
-$sewaWarning = false;
-$sewaJam = 0;
-if ($active) {
-    $sewaJam = floor((time() - strtotime($active['waktu_mulai'])) / 3600);
-    if ($sewaJam >= 2) $sewaWarning = true;
-}
+$active = $trx->readActiveByUserId($_SESSION['user_id'])->fetch(PDO::FETCH_ASSOC);
+$stmtBikes = $bikeModel->readAll();
+
+$msg = $_GET['msg'] ?? '';
 ?>
 
-<div class="greeting">
-    <h2>Halo, <?php echo htmlspecialchars($_SESSION['name']); ?> 👋</h2>
-    <p>Mau kemana hari ini?</p>
+<!-- Sapaan Pengguna -->
+<div class="greeting" style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 20px;">
+    <div>
+        <h2>Halo, <?= htmlspecialchars($_SESSION['name']) ?> 👋</h2>
+        <p>Mau keliling kampus hari ini?</p>
+    </div>
 </div>
 
-<?php if ($sewaWarning): ?>
-<div class="alert alert-warning">
-    Anda sudah menyewa selama <?php echo $sewaJam; ?> jam. 
-    Estimasi biaya: Rp <?php echo number_format(ceil((time() - strtotime($active['waktu_mulai'])) / 3600) * $active['tarif_per_jam'], 0, ',', '.'); ?>
-</div>
+<?php if ($msg === 'returned'): ?>
+    <div class="alert alert-success">Penyewaan berhasil diselesaikan! Status: Lunas.</div>
 <?php endif; ?>
 
+<?php if ($msg === 'rental_started'): ?>
+    <div class="alert alert-success">Pembayaran berhasil! Penyewaan sepeda dimulai.</div>
+<?php endif; ?>
+
+<!-- Status Penyewaan Aktif -->
 <?php if ($active): ?>
-<div class="rental-card">
-    <div class="card-title">Sewa Aktif</div>
-    <div class="detail-row">
-        <span class="label">Sepeda</span>
-        <span class="value"><?php echo $active['merk']; ?></span>
+    <div class="rental-card" style="margin-bottom: 20px;">
+        <div class="card-title">Sewa Berlangsung</div>
+        <div class="detail-row">
+            <span class="label">Sepeda</span>
+            <span class="value"><?= htmlspecialchars($active['merk']) ?></span>
+        </div>
+        <div class="detail-row">
+            <span class="label">Mulai</span>
+            <span class="value"><?= date('H:i', strtotime($active['waktu_mulai'])) ?></span>
+        </div>
+        <a href="index.php?page=user_active" class="btn btn-block mt-2" style="background:#fff; color:#1e3a5f;">Lihat Detail & Akhiri</a>
     </div>
-    <div class="detail-row">
-        <span class="label">Mulai</span>
-        <span class="value"><?php echo date('H:i', strtotime($active['waktu_mulai'])); ?></span>
-    </div>
-    <a href="index.php?page=user_active" class="btn btn-block mt-2">Lihat Detail</a>
-</div>
 <?php endif; ?>
 
-<div class="quick-buttons" style="grid-template-columns: repeat(2, 1fr);">
-    <a href="index.php?page=scan">
-        <span class="qb-icon">📷</span>Scan QR
-    </a>
-    <a href="index.php?page=faq">
-        <span class="qb-icon">❓</span>Bantuan
-    </a>
+<!-- Daftar Sepeda di Home -->
+<div class="section-title">Daftar Sepeda Kampus</div>
+<div class="section-subtitle">Ketersediaan sepeda listrik saat ini</div>
+
+<div class="bike-grid">
+    <?php
+    $i = 1;
+    while ($row = $stmtBikes->fetch(PDO::FETCH_ASSOC)):
+    ?>
+        <div class="bike-card">
+            <span class="bike-icon">🚲</span>
+            <div class="bike-name">Sepeda <?= $i ?></div>
+            <div style="font-size:11px; color:#9ca3af; margin-bottom:6px;"><?= htmlspecialchars($row['merk']) ?></div>
+            <div class="bike-status">
+                <?php if ($row['status'] === 'Tersedia'): ?>
+                    <span class="badge badge-green">Tersedia</span>
+                <?php else: ?>
+                    <span class="badge badge-yellow">Sedang Disewa</span>
+                <?php endif; ?>
+            </div>
+
+            <?php if ($row['status'] === 'Tersedia'): ?>
+                <?php if ($active): ?>
+                    <button class="btn btn-secondary btn-sm" disabled style="opacity:0.5; width:100%;">Sewa</button>
+                <?php else: ?>
+                    <a href="index.php?page=payment&bike_id=<?= $row['id'] ?>" class="btn btn-primary btn-sm">Sewa Sepeda</a>
+                <?php endif; ?>
+            <?php else: ?>
+                <button class="btn btn-secondary btn-sm" disabled style="opacity:0.4; cursor:default; width:100%">Tidak Tersedia</button>
+            <?php endif; ?>
+        </div>
+    <?php
+        $i++;
+    endwhile;
+    ?>
 </div>
+
+<?php if ($i === 1): ?>
+    <div class="card text-center" style="padding:32px;">
+        <div style="font-size:48px;margin-bottom:12px;">🚲</div>
+        <p class="text-muted">Belum ada data sepeda yang terdaftar.</p>
+    </div>
+<?php endif; ?>
 
 <?php require 'views/layouts/footer_user.php'; ?>

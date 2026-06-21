@@ -26,39 +26,37 @@ $stmt = $trx->readByUserId($_SESSION['user_id']);
         }
     ?>
     <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <div class="flex-between" style="margin-bottom:8px;">
             <div>
-                <div style="font-weight:700; font-size:14px;"><?php echo $row['merk']; ?></div>
-                <div class="text-muted text-small"><?php echo date('d M Y, H:i', strtotime($row['waktu_mulai'])); ?></div>
+                <div style="font-weight:700; font-size:14px;"><?= $row['merk'] ?></div>
+                <div class="text-muted text-small"><?= date('d M Y, H:i', strtotime($row['waktu_mulai'])) ?></div>
             </div>
-            <div>
-                <?php if ($row['status_sewa'] == 'Berjalan'): ?>
-                    <span class="badge badge-yellow">Aktif</span>
-                <?php elseif ($row['status_pembayaran'] == 'Belum Bayar'): ?>
-                    <span class="badge badge-red">Belum Bayar</span>
-                <?php else: ?>
-                    <span class="badge badge-green">Lunas</span>
-                <?php endif; ?>
-            </div>
+            <?php if ($row['status_sewa'] == 'Berjalan'): ?>
+                <span class="badge badge-yellow">Aktif</span>
+            <?php elseif ($row['status_pembayaran'] == 'Belum Bayar'): ?>
+                <span class="badge badge-red">Belum Bayar</span>
+            <?php else: ?>
+                <span class="badge badge-green">Selesai</span>
+            <?php endif; ?>
         </div>
         <div class="detail-row">
             <span class="label">Durasi</span>
-            <span class="value"><?php echo $durasi; ?></span>
+            <span class="value"><?= $durasi ?></span>
         </div>
         <?php if ($row['total_biaya']): ?>
         <div class="detail-row">
             <span class="label">Total</span>
-            <span class="value">Rp <?php echo number_format($row['total_biaya'],0,',','.'); ?></span>
+            <span class="value">Rp <?= number_format($row['total_biaya'],0,',','.') ?></span>
         </div>
         <?php endif; ?>
         <?php if ($row['status_sewa'] !== 'Berjalan' && $row['status_pembayaran'] == 'Belum Bayar'): ?>
-            <a href="index.php?page=payment&trx_id=<?php echo $row['id']; ?>" class="btn btn-primary btn-block btn-sm mt-1">Bayar Sekarang</a>
+            <a href="index.php?page=payment&trx_id=<?= $row['id'] ?>" class="btn btn-primary btn-block btn-sm mt-1">Bayar</a>
         <?php endif; ?>
     </div>
     <?php endwhile; ?>
 <?php else: ?>
-<div class="card text-center" style="padding:32px 16px;">
-    <div style="font-size:48px; margin-bottom:12px;">📋</div>
+<div class="card text-center" style="padding:32px;">
+    <div style="font-size:48px;margin-bottom:12px;">📋</div>
     <p class="text-muted">Belum ada riwayat penyewaan</p>
 </div>
 <?php endif; ?>

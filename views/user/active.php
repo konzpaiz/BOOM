@@ -15,9 +15,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['transaction_id'])) {
         $biaya = $jam * $transaction['tarif_per_jam'];
         
         if ($trx->endRental($_POST['transaction_id'], $biaya)) {
+            // Automatically complete payment (Lunas)
+            $trx->updatePayment($_POST['transaction_id']);
+            
             $bike = new Bike();
             $bike->updateStatus($transaction['sepeda_id'], 'Tersedia');
-            header('Location: index.php?page=payment&trx_id=' . $_POST['transaction_id']);
+            header('Location: index.php?page=user_dashboard&msg=returned');
             exit;
         }
     }

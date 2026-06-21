@@ -3,19 +3,20 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - E-Bike Campus</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Admin - BOOM</title>
     <link rel="stylesheet" href="assets/css/style.css">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-<div class="admin-layout">
-    <aside class="sidebar">
-        <h3>Admin Panel</h3>
-        <a href="index.php?page=admin_dashboard" class="<?= ($page ?? '') === 'admin_dashboard' ? 'active' : '' ?>">Dashboard</a>
-        <a href="index.php?page=admin_bikes" class="<?= ($page ?? '') === 'admin_bikes' ? 'active' : '' ?>">Data Sepeda</a>
-        <a href="index.php?page=admin_transactions" class="<?= ($page ?? '') === 'admin_transactions' ? 'active' : '' ?>">Transaksi</a>
-        <div class="sidebar-footer">
-            <a href="index.php?page=logout">Logout (<?= htmlspecialchars($_SESSION['name'] ?? 'Admin') ?>)</a>
+    <div class="header">
+        <div class="header-left">
+            <img src="assets/img/logo.png" alt="Logo">
+            <span>BOOM Admin</span>
         </div>
-    </aside>
-    <main class="admin-main">
+        <div class="header-right">
+            <span style="font-weight:600; color:#dc2626;">⚙️ Admin</span>
+        </div>
+    </div>
+    <div class="container">

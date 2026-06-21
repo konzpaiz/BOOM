@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>E-Bike Campus</title>
+    <title>BOOM</title>
     <link rel="stylesheet" href="assets/css/style.css">
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
@@ -12,7 +12,7 @@
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
-                <h3><i class="fa-solid fa-bicycle"></i> E-Bike</h3>
+                <h3><i class="fa-solid fa-bicycle"></i> BOOM</h3>
             </div>
             <div class="sidebar-menu">
                 <a href="index.php?page=user_dashboard" class="<?php echo ($page=='user_dashboard')?'active':''; ?>"><i class="fa-solid fa-house"></i> Dashboard</a>
