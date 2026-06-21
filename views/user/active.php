@@ -86,3 +86,4 @@ $active = $trx->readActiveByUserId($_SESSION['user_id'])->fetch(PDO::FETCH_ASSOC
 <?php endif; ?>
 
 <?php require 'views/layouts/footer_user.php'; ?>
+//

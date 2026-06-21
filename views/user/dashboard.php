@@ -89,3 +89,4 @@ $msg = $_GET['msg'] ?? '';
 <?php endif; ?>
 
 <?php require 'views/layouts/footer_user.php'; ?>
+//

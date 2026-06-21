@@ -102,4 +102,4 @@ if ($page == 'home') {
 } else {
     echo "<p>404 - Halaman tidak ditemukan.</p>";
 }
-?>
+?>//test//
