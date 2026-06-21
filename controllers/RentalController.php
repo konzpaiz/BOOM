@@ -30,12 +30,12 @@ class RentalController {
             
             if ($trx->create()) {
                 // Change bike status
-                $bike->updateStatus($bike_id, 'Disewa');
-                
+                $bike->updateStatus($bike_id, 'Dipinjam');
+
                 // Redirect to payment simulation or dashboard
                 // In this flow, they scan -> start -> dashboard -> then end -> payment
                 // Or scan -> pay -> start. Let's do: Scan -> Review -> Pay (simulate) -> Start
-                header("Location: index.php?page=user_dashboard&msg=rental_started");
+                header("Location: index.php?page=payment&trx_id=" . $trx->id);
                 exit;
             } else {
                 return "Gagal memulai penyewaan.";

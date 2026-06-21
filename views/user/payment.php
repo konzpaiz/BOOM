@@ -1,73 +1,74 @@
-<?php require 'views/layouts/sidebar_user.php'; ?>
+<?php require 'views/layouts/header_user.php'; ?>
 <?php
+require_once 'models/Bike.php';
 require_once 'models/Transaction.php';
-require_once 'controllers/RentalController.php';
 
-$rental = new RentalController();
-$rental->pay();
+$trx = new Transaction();
+$active = $trx->readActiveByUserId($_SESSION['user_id'])->fetch(PDO::FETCH_ASSOC);
 
-if (!isset($_GET['trx_id'])) {
-    echo "<div class='alert alert-danger'><i class='fa-solid fa-circle-exclamation'></i> Transaksi tidak ditemukan.</div>";
-    require 'views/layouts/footer.php';
+if ($active) {
+    echo '<div class="alert alert-danger">Anda masih memiliki penyewaan yang sedang berjalan.</div>';
+    require 'views/layouts/footer_user.php';
     exit;
 }
 
-$trx = new Transaction();
-$transaction = $trx->readById($_GET['trx_id']);
+$bike_id = isset($_GET['bike_id']) ? (int)$_GET['bike_id'] : (isset($_POST['bike_id']) ? (int)$_POST['bike_id'] : 0);
 
-if (!$transaction || $transaction['user_id'] != $_SESSION['user_id'] || $transaction['status_pembayaran'] == 'Lunas') {
-    echo "<div class='alert alert-danger'><i class='fa-solid fa-circle-exclamation'></i> Transaksi tidak valid atau sudah dibayar.</div>";
-    require 'views/layouts/footer.php';
+$bike = new Bike();
+if (!$bike_id || !$bike->readById($bike_id) || $bike->status !== 'Tersedia') {
+    echo '<div class="alert alert-danger">Sepeda tidak ditemukan atau sudah tidak tersedia.</div>';
+    require 'views/layouts/footer_user.php';
     exit;
+}
+
+$err = null;
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['bike_id'])) {
+    $newTrx = new Transaction();
+    $newTrx->user_id = $_SESSION['user_id'];
+    $newTrx->sepeda_id = $bike_id;
+
+    if ($newTrx->create()) {
+        $newTrx->updatePayment($newTrx->id);
+        $bike->updateStatus($bike_id, 'Disewa');
+        header('Location: index.php?page=history&msg=payment_success');
+        exit;
+    } else {
+        $err = "Gagal memproses pembayaran. Silakan coba lagi.";
+    }
 }
 ?>
 
-<div class="card" style="max-width: 600px; margin: 0 auto;">
-    <div class="text-center mb-4">
-        <h2 style="margin:0;"><i class="fa-solid fa-wallet" style="color: var(--secondary-color);"></i> Pembayaran Sewa</h2>
-        <p class="text-muted">Selesaikan pembayaran Anda untuk transaksi ini.</p>
-    </div>
-    
-    <div style="background-color: #F8FAFC; padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem; border: 1px solid #E5E7EB;">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-            <span class="text-muted">ID Transaksi</span>
-            <strong>#<?php echo $transaction['id']; ?></strong>
-        </div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-            <span class="text-muted">Waktu Mulai</span>
-            <strong><?php echo date('d M Y, H:i', strtotime($transaction['waktu_mulai'])); ?></strong>
-        </div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-            <span class="text-muted">Waktu Selesai</span>
-            <strong><?php echo date('d M Y, H:i', strtotime($transaction['waktu_selesai'])); ?></strong>
-        </div>
-        <hr style="border: none; border-top: 1px dashed #CBD5E1; margin: 1rem 0;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span class="text-muted">Total Tagihan</span>
-            <strong style="color: var(--primary-color); font-size: 1.5rem;">Rp <?php echo number_format($transaction['total_biaya'],0,',','.'); ?></strong>
-        </div>
-    </div>
+<div class="section-title">Pembayaran</div>
+<div class="section-subtitle">Selesaikan pembayaran untuk mulai menyewa</div>
 
-    <form method="POST" action="">
-        <input type="hidden" name="transaction_id" value="<?php echo $transaction['id']; ?>">
-        
-        <div class="form-group">
-            <label>Pilih Metode Pembayaran</label>
-            <div style="position: relative;">
-                <i class="fa-solid fa-credit-card" style="position: absolute; left: 15px; top: 15px; color: #9CA3AF;"></i>
-                <select class="form-control" name="payment_method" style="padding-left: 40px; appearance: none;" required>
-                    <option value="qris">QRIS (GoPay, OVO, Dana, LinkAja)</option>
-                    <option value="transfer">Virtual Account Bank</option>
-                    <option value="saldo">Saldo Dompet Kampus</option>
-                </select>
-                <i class="fa-solid fa-chevron-down" style="position: absolute; right: 15px; top: 15px; color: #9CA3AF; pointer-events: none;"></i>
-            </div>
-        </div>
-        
-        <button type="submit" class="btn btn-secondary mt-3" style="width: 100%; font-size: 1.1rem; padding: 1rem;">
-            <i class="fa-solid fa-money-bill-wave"></i> Bayar Sekarang
-        </button>
+<?php if ($err): ?>
+    <div class="alert alert-danger"><?php echo $err; ?></div>
+<?php endif; ?>
+
+<div class="card">
+    <div class="card-title">Detail Sepeda</div>
+    <div class="detail-row">
+        <span class="label">Sepeda</span>
+        <span class="value"><?php echo htmlspecialchars($bike->merk); ?></span>
+    </div>
+    <div class="detail-row">
+        <span class="label">Tarif</span>
+        <span class="value">Rp <?php echo number_format($bike->tarif_per_jam, 0, ',', '.'); ?> / jam</span>
+    </div>
+</div>
+
+<div class="card text-center">
+    <div class="card-title">Scan QRIS untuk Membayar</div>
+    <img src="assets/img/qris/qris.png" alt="QRIS" style="max-width:240px; width:100%; margin:12px auto; display:block;">
+    <p class="text-muted text-small" style="margin-top:8px;">
+        Pembayaran ini merupakan simulasi untuk keperluan tugas praktikum.
+    </p>
+
+    <form method="POST">
+        <input type="hidden" name="bike_id" value="<?php echo $bike_id; ?>">
+        <button type="submit" class="btn btn-success btn-block mt-2">Saya Sudah Membayar</button>
     </form>
 </div>
 
-<?php require 'views/layouts/footer.php'; ?>
+<?php require 'views/layouts/footer_user.php'; ?>

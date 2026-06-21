@@ -1,5 +1,5 @@
-<?php require 'views/layouts/sidebar_user.php'; ?>
-<?php 
+<?php require 'views/layouts/header_user.php'; ?>
+<?php
 require_once 'models/Transaction.php';
 require_once 'models/Bike.php';
 
@@ -7,71 +7,85 @@ $trx = new Transaction();
 $bikeModel = new Bike();
 
 $active = $trx->readActiveByUserId($_SESSION['user_id'])->fetch(PDO::FETCH_ASSOC);
-$available_bikes = $bikeModel->readAvailable()->rowCount();
+$stmtBikes = $bikeModel->readAll();
 
-// Get recent 3 history
-$history = $trx->readByUserId($_SESSION['user_id']);
-$recent_history = [];
-$i = 0;
-while($row = $history->fetch(PDO::FETCH_ASSOC)) {
-    if($i < 3) $recent_history[] = $row;
-    $i++;
-}
+$msg = $_GET['msg'] ?? '';
 ?>
 
-<div class="grid">
-    <div class="card stat-card">
-        <div class="stat-icon stat-primary"><i class="fa-solid fa-bicycle"></i></div>
-        <div class="stat-details">
-            <h3><?php echo $available_bikes; ?></h3>
-            <p>Sepeda Tersedia</p>
-        </div>
-    </div>
-    
-    <div class="card stat-card">
-        <div class="stat-icon <?php echo $active ? 'stat-secondary' : 'stat-danger'; ?>"><i class="fa-solid fa-person-biking"></i></div>
-        <div class="stat-details">
-            <h3><?php echo $active ? '1' : '0'; ?></h3>
-            <p>Penyewaan Aktif</p>
-        </div>
+<!-- Sapaan Pengguna -->
+<div class="greeting" style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 20px;">
+    <div>
+        <h2>Halo, <?= htmlspecialchars($_SESSION['name']) ?> 👋</h2>
+        <p>Mau keliling kampus hari ini?</p>
     </div>
 </div>
 
-<div class="card mt-4">
-    <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-        <h3 style="margin:0;"><i class="fa-solid fa-clock-rotate-left" style="color: var(--primary-color);"></i> Transaksi Terakhir</h3>
-        <a href="index.php?page=history" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">Lihat Semua</a>
+<?php if ($msg === 'returned'): ?>
+    <div class="alert alert-success">Penyewaan berhasil diselesaikan! Status: Lunas.</div>
+<?php endif; ?>
+
+<?php if ($msg === 'rental_started'): ?>
+    <div class="alert alert-success">Pembayaran berhasil! Penyewaan sepeda dimulai.</div>
+<?php endif; ?>
+
+<!-- Status Penyewaan Aktif -->
+<?php if ($active): ?>
+    <div class="rental-card" style="margin-bottom: 20px;">
+        <div class="card-title">Sewa Berlangsung</div>
+        <div class="detail-row">
+            <span class="label">Sepeda</span>
+            <span class="value"><?= htmlspecialchars($active['merk']) ?></span>
+        </div>
+        <div class="detail-row">
+            <span class="label">Mulai</span>
+            <span class="value"><?= date('H:i', strtotime($active['waktu_mulai'])) ?></span>
+        </div>
+        <a href="index.php?page=user_active" class="btn btn-block mt-2" style="background:#fff; color:#1e3a5f;">Lihat Detail & Akhiri</a>
     </div>
-    
-    <div class="table-responsive">
-        <table>
-            <thead>
-                <tr>
-                    <th>Sepeda</th>
-                    <th>Waktu Mulai</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach($recent_history as $row): ?>
-                <tr>
-                    <td><?php echo $row['merk']; ?></td>
-                    <td><?php echo date('d M Y, H:i', strtotime($row['waktu_mulai'])); ?></td>
-                    <td>
-                        <?php if ($row['status_sewa'] == 'Berjalan'): ?>
-                            <span class="badge badge-warning">Berjalan</span>
-                        <?php else: ?>
-                            <span class="badge badge-success">Selesai</span>
-                        <?php endif; ?>
-                    </td>
-                </tr>
-                <?php endforeach; ?>
-                <?php if(empty($recent_history)): ?>
-                    <tr><td colspan="3" class="text-center text-muted">Belum ada transaksi.</td></tr>
+<?php endif; ?>
+
+<!-- Daftar Sepeda di Home -->
+<div class="section-title">Daftar Sepeda Kampus</div>
+<div class="section-subtitle">Ketersediaan sepeda listrik saat ini</div>
+
+<div class="bike-grid">
+    <?php
+    $i = 1;
+    while ($row = $stmtBikes->fetch(PDO::FETCH_ASSOC)):
+    ?>
+        <div class="bike-card">
+            <span class="bike-icon">🚲</span>
+            <div class="bike-name">Sepeda <?= $i ?></div>
+            <div style="font-size:11px; color:#9ca3af; margin-bottom:6px;"><?= htmlspecialchars($row['merk']) ?></div>
+            <div class="bike-status">
+                <?php if ($row['status'] === 'Tersedia'): ?>
+                    <span class="badge badge-green">Tersedia</span>
+                <?php else: ?>
+                    <span class="badge badge-yellow">Sedang Disewa</span>
                 <?php endif; ?>
-            </tbody>
-        </table>
-    </div>
+            </div>
+
+            <?php if ($row['status'] === 'Tersedia'): ?>
+                <?php if ($active): ?>
+                    <button class="btn btn-secondary btn-sm" disabled style="opacity:0.5; width:100%;">Sewa</button>
+                <?php else: ?>
+                    <a href="index.php?page=payment&bike_id=<?= $row['id'] ?>" class="btn btn-primary btn-sm">Sewa Sepeda</a>
+                <?php endif; ?>
+            <?php else: ?>
+                <button class="btn btn-secondary btn-sm" disabled style="opacity:0.4; cursor:default; width:100%">Tidak Tersedia</button>
+            <?php endif; ?>
+        </div>
+    <?php
+        $i++;
+    endwhile;
+    ?>
 </div>
 
-<?php require 'views/layouts/footer.php'; ?>
+<?php if ($i === 1): ?>
+    <div class="card text-center" style="padding:32px;">
+        <div style="font-size:48px;margin-bottom:12px;">🚲</div>
+        <p class="text-muted">Belum ada data sepeda yang terdaftar.</p>
+    </div>
+<?php endif; ?>
+
+<?php require 'views/layouts/footer_user.php'; ?>

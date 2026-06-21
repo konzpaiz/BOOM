@@ -1,5 +1,5 @@
 <?php
-require_once 'config/database.php';
+require_once __DIR__ . '/../config/database.php';
 
 class Transaction {
     private $conn;
@@ -20,6 +20,10 @@ class Transaction {
     }
 
     public function create() {
+        $this->waktu_mulai = date('Y-m-d H:i:s');
+        $this->status_pembayaran = 'Belum Bayar';
+        $this->status_sewa = 'Berjalan';
+
         $query = "INSERT INTO " . $this->table_name . " SET user_id=:user_id, sepeda_id=:sepeda_id, waktu_mulai=:waktu_mulai, status_pembayaran=:status_pembayaran, status_sewa=:status_sewa";
         $stmt = $this->conn->prepare($query);
 
@@ -36,23 +40,39 @@ class Transaction {
         return false;
     }
 
+    public function endRental($id, $total_biaya) {
+        $waktu_selesai = date('Y-m-d H:i:s');
+        $status = 'Selesai';
+        $query = "UPDATE " . $this->table_name . " SET waktu_selesai=:selesai, total_biaya=:biaya, status_sewa=:status WHERE id=:id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(":selesai", $waktu_selesai);
+        $stmt->bindParam(":biaya", $total_biaya);
+        $stmt->bindParam(":status", $status);
+        $stmt->bindParam(":id", $id);
+        return $stmt->execute();
+    }
+
+    public function updatePayment($id) {
+        $status = 'Lunas';
+        $query = "UPDATE " . $this->table_name . " SET status_pembayaran=:status WHERE id=:id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(":status", $status);
+        $stmt->bindParam(":id", $id);
+        return $stmt->execute();
+    }
+
     public function endTransaction() {
         $query = "UPDATE " . $this->table_name . " SET waktu_selesai=:waktu_selesai, total_biaya=:total_biaya, status_sewa=:status_sewa WHERE id=:id";
         $stmt = $this->conn->prepare($query);
-
         $stmt->bindParam(":waktu_selesai", $this->waktu_selesai);
         $stmt->bindParam(":total_biaya", $this->total_biaya);
         $stmt->bindParam(":status_sewa", $this->status_sewa);
         $stmt->bindParam(":id", $this->id);
-
-        if($stmt->execute()){
-            return true;
-        }
-        return false;
+        return $stmt->execute();
     }
 
     public function readByUserId($user_id) {
-        $query = "SELECT t.*, s.kode_sepeda, s.merk FROM " . $this->table_name . " t LEFT JOIN sepeda s ON t.sepeda_id = s.id WHERE t.user_id = ? ORDER BY t.id DESC";
+        $query = "SELECT t.*, s.kode_sepeda, s.merk, s.tarif_per_jam FROM " . $this->table_name . " t LEFT JOIN sepeda s ON t.sepeda_id = s.id WHERE t.user_id = ? ORDER BY t.id DESC";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(1, $user_id);
         $stmt->execute();
@@ -68,14 +88,14 @@ class Transaction {
     }
 
     public function readAll() {
-        $query = "SELECT t.*, u.nim, u.name as user_name, s.kode_sepeda FROM " . $this->table_name . " t LEFT JOIN users u ON t.user_id = u.id LEFT JOIN sepeda s ON t.sepeda_id = s.id ORDER BY t.id DESC";
+        $query = "SELECT t.*, u.nim, u.name as user_name, s.kode_sepeda, s.merk FROM " . $this->table_name . " t LEFT JOIN users u ON t.user_id = u.id LEFT JOIN sepeda s ON t.sepeda_id = s.id ORDER BY t.id DESC";
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
         return $stmt;
     }
 
     public function readById($id) {
-        $query = "SELECT t.*, s.tarif_per_jam FROM " . $this->table_name . " t LEFT JOIN sepeda s ON t.sepeda_id = s.id WHERE t.id = ? LIMIT 0,1";
+        $query = "SELECT t.*, s.tarif_per_jam, s.merk, s.kode_sepeda FROM " . $this->table_name . " t LEFT JOIN sepeda s ON t.sepeda_id = s.id WHERE t.id = ? LIMIT 0,1";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(1, $id);
         $stmt->execute();

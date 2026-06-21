@@ -1,54 +1,88 @@
-<?php require 'views/layouts/sidebar_user.php'; ?>
+<?php require 'views/layouts/header_user.php'; ?>
 <?php 
 require_once 'models/Transaction.php';
-require_once 'controllers/RentalController.php';
-
-$rental = new RentalController();
-$rental->endRental();
+require_once 'models/Bike.php';
 
 $trx = new Transaction();
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['transaction_id'])) {
+    $transaction = $trx->readById($_POST['transaction_id']);
+    if ($transaction && $transaction['user_id'] == $_SESSION['user_id'] && $transaction['status_sewa'] == 'Berjalan') {
+        $mulai = strtotime($transaction['waktu_mulai']);
+        $sekarang = time();
+        $jam = ceil(($sekarang - $mulai) / 3600);
+        if ($jam < 1) $jam = 1;
+        $biaya = $jam * $transaction['tarif_per_jam'];
+        
+        if ($trx->endRental($_POST['transaction_id'], $biaya)) {
+            // Automatically complete payment (Lunas)
+            $trx->updatePayment($_POST['transaction_id']);
+            
+            $bike = new Bike();
+            $bike->updateStatus($transaction['sepeda_id'], 'Tersedia');
+            header('Location: index.php?page=user_dashboard&msg=returned');
+            exit;
+        }
+    }
+}
+
 $active = $trx->readActiveByUserId($_SESSION['user_id'])->fetch(PDO::FETCH_ASSOC);
 ?>
 
-<div>
-    <h2 style="margin-bottom: 1.5rem;">Penyewaan Aktif</h2>
-    
-    <?php if ($active): ?>
-        <div class="card" style="max-width: 600px; margin: 0 auto; text-align: center; border-top: 5px solid var(--secondary-color);">
-            <div style="background-color: #ECFDF5; width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; color: var(--secondary-color); margin: 0 auto 1.5rem auto;">
-                <i class="fa-solid fa-person-biking"></i>
-            </div>
-            
-            <h3 style="margin-top: 0;">Sepeda Sedang Digunakan</h3>
-            
-            <div style="background-color: #F8FAFC; border-radius: 12px; padding: 1.5rem; margin: 1.5rem 0; text-align: left;">
-                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #E5E7EB; padding-bottom: 0.75rem; margin-bottom: 0.75rem;">
-                    <span class="text-muted">Unit Sepeda</span>
-                    <strong style="color: var(--primary-color);"><?php echo $active['merk']; ?> (<?php echo $active['kode_sepeda']; ?>)</strong>
-                </div>
-                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #E5E7EB; padding-bottom: 0.75rem; margin-bottom: 0.75rem;">
-                    <span class="text-muted">Waktu Mulai</span>
-                    <strong><?php echo date('d M Y, H:i', strtotime($active['waktu_mulai'])); ?></strong>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                    <span class="text-muted">Tarif Berlaku</span>
-                    <strong>Rp <?php echo number_format($active['tarif_per_jam'],0,',','.'); ?> / jam</strong>
-                </div>
-            </div>
-            
-            <form method="POST" action="" onsubmit="return confirm('Anda yakin ingin mengakhiri penyewaan ini? Biaya akan dihitung dari waktu mulai hingga saat ini.');">
-                <input type="hidden" name="transaction_id" value="<?php echo $active['id']; ?>">
-                <button type="submit" class="btn btn-danger" style="width: 100%; font-size: 1.1rem; padding: 1rem;"><i class="fa-solid fa-stop-circle"></i> Akhiri Penyewaan</button>
-            </form>
-        </div>
-    <?php else: ?>
-        <div class="card text-center" style="padding: 4rem 2rem;">
-            <i class="fa-solid fa-bicycle" style="font-size: 4rem; color: #D1D5DB; margin-bottom: 1rem;"></i>
-            <h3 style="color: var(--text-muted);">Tidak Ada Penyewaan Aktif</h3>
-            <p class="text-muted mb-4">Anda belum menyewa sepeda apapun saat ini.</p>
-            <a href="index.php?page=user_bikes" class="btn btn-primary"><i class="fa-solid fa-list"></i> Lihat Daftar Sepeda</a>
-        </div>
-    <?php endif; ?>
+<div class="section-title">Penyewaan Aktif</div>
+<div class="section-subtitle">Status penyewaan Anda saat ini</div>
+
+<?php if ($active): ?>
+<div class="rental-card">
+    <div class="card-title">Sedang Menyewa</div>
+    <div class="detail-row">
+        <span class="label">Sepeda</span>
+        <span class="value"><?php echo $active['merk']; ?></span>
+    </div>
+    <div class="detail-row">
+        <span class="label">Waktu Mulai</span>
+        <span class="value"><?php echo date('d M Y, H:i', strtotime($active['waktu_mulai'])); ?></span>
+    </div>
+    <div class="detail-row">
+        <span class="label">Durasi</span>
+        <span class="value" id="duration">-</span>
+    </div>
+    <div class="detail-row">
+        <span class="label">Estimasi Biaya</span>
+        <span class="value" id="est-biaya">-</span>
+    </div>
 </div>
 
-<?php require 'views/layouts/footer.php'; ?>
+<form method="POST" onsubmit="return confirm('Yakin ingin mengakhiri penyewaan?');">
+    <input type="hidden" name="transaction_id" value="<?php echo $active['id']; ?>">
+    <button type="submit" class="btn btn-danger btn-block">Akhiri Penyewaan</button>
+</form>
+
+<script>
+    var tarif = <?php echo $active['tarif_per_jam']; ?>;
+    var mulai = new Date('<?php echo $active['waktu_mulai']; ?>').getTime();
+    function update() {
+        var now = Date.now();
+        var diff = Math.floor((now - mulai) / 1000);
+        var h = Math.floor(diff / 3600);
+        var m = Math.floor((diff % 3600) / 60);
+        var s = diff % 60;
+        document.getElementById('duration').textContent = h + ' jam ' + m + ' mnt ' + s + ' dtk';
+        var jam = Math.ceil((now - mulai) / 3600000);
+        if (jam < 1) jam = 1;
+        document.getElementById('est-biaya').textContent = 'Rp ' + (jam * tarif).toLocaleString('id-ID');
+    }
+    update();
+    setInterval(update, 1000);
+</script>
+
+<?php else: ?>
+<div class="card text-center" style="padding:32px 16px;">
+    <div style="font-size:48px; margin-bottom:12px;">🚲</div>
+    <div style="font-size:15px; font-weight:600; color:#1f2937; margin-bottom:4px;">Tidak Ada Penyewaan Aktif</div>
+    <p class="text-muted text-small mb-2">Mulai sewa sepeda dengan scan QR atau pilih dari daftar</p>
+    <a href="index.php?page=scan" class="btn btn-primary mt-2">Sewa Sepeda</a>
+</div>
+<?php endif; ?>
+
+<?php require 'views/layouts/footer_user.php'; ?>

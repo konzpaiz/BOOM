@@ -15,7 +15,6 @@ class AuthController {
             if ($num > 0) {
                 $row = $stmt->fetch(PDO::FETCH_ASSOC);
                 if (password_verify($password, $row['password'])) {
-                    // Password correct, start session
                     $_SESSION['user_id'] = $row['id'];
                     $_SESSION['nim'] = $row['nim'];
                     $_SESSION['name'] = $row['name'];
@@ -40,6 +39,11 @@ class AuthController {
 
     public function register() {
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            // Validasi konfirmasi password
+            if ($_POST['password'] !== $_POST['confirm_password']) {
+                return "Password dan konfirmasi password tidak sama.";
+            }
+
             $user = new User();
             $user->nim = $_POST['nim'];
             $user->name = $_POST['name'];
